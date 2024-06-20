@@ -6,7 +6,7 @@
 #include <cmath>
 #include "ThreadPool.hpp"
 
-struct Results
+class Results
 {
     std::mutex primeDividorsMutex;
     std::map<uint64_t, std::vector<uint64_t>> primeDividors;

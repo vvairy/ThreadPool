@@ -18,7 +18,7 @@ public:
 
     ~ThreadPool() 
     {
-        pause = true;
+        destructorCalled = true;
         has_task.notify_all();
         for (std::thread& worker : workers)
             if (worker.joinable())
@@ -44,9 +44,21 @@ public:
         }
         else 
         {
+
+            workersToKillMutex.lock();
             for (int i = numThreads; i < currentSize; ++i)
+            {
+                workersToKill.push_back(workers[i].get_id());
+            }
+            workersToKillMutex.unlock();
+            has_task.notify_all();
+
+            for (int i = numThreads; i < currentSize; ++i)
+            {
+               
                 if (workers[i].joinable())
                     workers[i].join();
+            }
             workers.resize(numThreads);
         }
     }
@@ -58,23 +70,34 @@ public:
 
 private:
     std::vector<std::thread> workers;
+    std::vector<std::thread::id> workersToKill;
     std::priority_queue<Task> tasks;
     std::mutex queueMutex;
+    std::mutex workersToKillMutex;
     std::condition_variable has_task;
-    std::atomic_bool pause = false;
+    std::atomic_bool destructorCalled = false;
 
     void workerThread() 
     {
-        while (!pause) 
+        while (true) 
         {
             Task task;
             {
                 std::unique_lock<std::mutex> lock(queueMutex);
                 has_task.wait(lock, [this] {
-                    return !tasks.empty() || pause;
+                    return !tasks.empty() || destructorCalled || workersToKill.size() != 0;
                     });
 
-                if (pause) return;
+                if (destructorCalled) return;
+
+                std::unique_lock<std::mutex> killLock(workersToKillMutex);
+                if (auto it = std::find(workersToKill.begin(), workersToKill.end(), std::this_thread::get_id());
+                    it != workersToKill.end())
+                {
+                    workersToKill.erase(it);
+                    return;
+                }
+                killLock.unlock();
 
                 if (!tasks.empty()) {
                     task = std::move(tasks.top());
@@ -83,6 +106,7 @@ private:
                 else continue;
             }
             task.func();
+            
         }
     }
 };

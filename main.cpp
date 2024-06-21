@@ -22,20 +22,42 @@ public:
     }
 } res;
 
-bool static isPrime(uint64_t num)
+
+static std::vector<uint64_t> calculateDividors(uint64_t num)
 {
-    if (num <= 1) return false;
-    if (num == 2 || num == 3) return true;
-    if (num % 2 == 0 || num % 3 == 0) return false;
-    for (uint64_t i = 5; i <= sqrt(num); i += 6)
-        if (num % i == 0 || num % (i + 2) == 0) return false;
-    return true;
+    std::vector<uint64_t> dividors;
+
+    while (num % 2 == 0) {
+        dividors.push_back(2);
+        num /= 2;
+    }
+    while (num % 3 == 0) {
+        dividors.push_back(3);
+        num /= 3;
+    }
+
+    for (uint64_t i = 5; i < sqrt(num); i += 6)
+    {
+        while (num % i == 0) {
+            dividors.push_back(i);
+            num /= i;
+        }
+        while (num % (i + 2) == 0) {
+            dividors.push_back(i + 2);
+            num /= (i + 2);
+        }
+    }
+    dividors.push_back(num);
+    return dividors;
 }
 
 int main() {
     ThreadPool pool(2);
 
     std::string input;
+    uint64_t number;
+    int priority;
+
     while (true)
     {
         std::getline(std::cin, input);
@@ -46,35 +68,15 @@ int main() {
             pool.resize(pool.size() * 2);
             std::cout << "restarted with new size: " << pool.size() << '\n';
         }
-        else 
+        else if (std::istringstream iss(input); iss >> number >> priority)
         {
-            std::istringstream iss(input);
-            uint64_t number; int priority;
-            if (!(iss >> number >> priority))
+            pool.enqueueTask(Task{ [number]
             {
-                std::cout << "ERR\n";
-                continue;
-            }
-            else
-            {
-                pool.enqueueTask(Task{ [number]
-                {
-                    uint64_t num = number;
-                    std::vector<uint64_t> dividors;
-                    for (uint64_t i = 2; i <= sqrt(num);)
-                    {
-                        if (num % i == 0 && isPrime(i))
-                        {
-                            dividors.push_back(i);
-                            num /= i;
-                        }
-                        else { ++i; }
-                    }
-                    dividors.push_back(num);
-                    res.insert(std::make_pair(number, dividors));
-                }, priority });
-            }
+               res.insert(std::make_pair(number, calculateDividors(number)));
+            }, priority });
         }
+        else
+            std::cout << "ERR\n";
     }
 
     //print results

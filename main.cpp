@@ -70,8 +70,7 @@ int main() {
         }
         else if (std::istringstream iss(input); iss >> number >> priority)
         {
-            pool.enqueueTask(Task{ [number]
-            {
+            pool.enqueueTask(Task{ [number] {
                res.insert(std::make_pair(number, calculateDividors(number)));
             }, priority });
         }

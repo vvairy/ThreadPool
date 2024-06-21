@@ -36,19 +36,19 @@ public:
 
     void resize(size_t numThreads) 
     {
-        pause = true;
-        has_task.notify_all();
-        for (std::thread& worker : workers)
-            if (worker.joinable())
-                worker.join();
-
-        workers.clear();
-        workers.reserve(numThreads);
-        for (size_t i = 0; i < numThreads; ++i)
-            workers.emplace_back(&ThreadPool::workerThread, this);
-
-        pause = false;
-        has_task.notify_all();
+        size_t currentSize = size();
+        if (numThreads > currentSize)
+        {
+            for (int i = currentSize; i < numThreads; ++i)
+                workers.emplace_back(&ThreadPool::workerThread, this);
+        }
+        else 
+        {
+            for (int i = numThreads; i < currentSize; ++i)
+                if (workers[i].joinable())
+                    workers[i].join();
+            workers.resize(numThreads);
+        }
     }
 
     size_t size() const 

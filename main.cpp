@@ -16,10 +16,20 @@ public:
         return primeDividors;
     }
 
-    void insert(std::pair<uint64_t, std::vector<uint64_t>>&& divs) {
+    auto insert(std::pair<uint64_t, std::vector<uint64_t>>&& divs) {
         std::lock_guard<std::mutex> lock(primeDividorsMutex);
-        primeDividors.insert(std::move(divs));
+        return primeDividors.insert(std::move(divs));
     }
+
+    void printDividors(std::map<uint64_t, std::vector<uint64_t>>::iterator it) {
+        std::lock_guard<std::mutex> lock(primeDividorsMutex);
+        const auto& [number, dividors] = *it;
+        std::cout << number << ' ';
+        for (uint64_t el : dividors)
+            std::cout << el << ' ';
+        std::cout << '\n';
+    }
+
 } res;
 
 
@@ -71,7 +81,8 @@ int main() {
         else if (std::istringstream iss(input); iss >> number >> priority)
         {
             pool.enqueueTask(Task{ [number] {
-               res.insert(std::make_pair(number, calculateDividors(number)));
+               auto it_bool = res.insert(std::make_pair(number, calculateDividors(number)));
+               res.printDividors(it_bool.first);
             }, priority });
         }
         else
@@ -79,13 +90,6 @@ int main() {
     }
 
     //print results
-    for (const auto& [num, dividors] : res.getDividors())
-    {
-        std::cout << num << ": ";
-        for (const auto& el : dividors)
-            std::cout << el << ' ';
-        std::cout << '\n';
-    }
     
     return 0;
 }

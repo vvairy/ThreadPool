@@ -21,7 +21,7 @@ public:
         return primeDividors.insert(std::move(divs));
     }
 
-    void printDividors(std::map<uint64_t, std::vector<uint64_t>>::iterator it) {
+    void printDividors(std::map<uint64_t, std::vector<uint64_t>>::iterator it) const {
         std::lock_guard<std::mutex> lock(primeDividorsMutex);
         const auto& [number, dividors] = *it;
         std::cout << number << ' ';
@@ -46,7 +46,7 @@ static std::vector<uint64_t> calculateDividors(uint64_t num)
         num /= 3;
     }
 
-    for (uint64_t i = 5; i < sqrt(num); i += 6)
+    for (uint64_t i = 5; i <= sqrt(num); i += 6)
     {
         while (num % i == 0) {
             dividors.push_back(i);
